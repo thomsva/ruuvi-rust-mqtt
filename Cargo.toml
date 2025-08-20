@@ -1,0 +1,10 @@
+[package]
+name = "ruuvi-rust-mqtt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bluer = { version = "0.17.4", features = ["bluetoothd"] } 
+hex = "0.4.3"
+tokio = { version = "1.47.1", features = ["full"] }
+tokio-stream = "0.1.17"
