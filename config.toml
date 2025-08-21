@@ -19,15 +19,23 @@ password = ""
 # Sensor Filtering / Logging
 # ===========================
 [sensors]
-# List of sensor MAC addresses to include. Leave empty to allow all sensors.
+# List of sensor MAC addresses to exclude. 
+# Formatting examples: [] or ["F1:CC:CA:55:44:33:, "F1:CC:CA:55:22:11"]
+blacklist = []
+
+# If true, sensors on the blaclist are always excluded. False bypasses this rule. 
+use_blacklist = false
+
+# List of sensor MAC addresses to include.
+# Formatting examples: [] or ["F1:CC:CA:55:44:33:, "F1:CC:CA:55:22:11"]
 whitelist = []
 
 # If true, only sensors in the whitelist are allowed. If false, all detected sensors are accepted.
-require_whitelist = false
+use_whitelist = false
 
 # Print sensor measurements to the console for debugging. 
 # Recommended to disable in long-running deployments.
-debug_print_measurements = true
+debug_print = false
 
 
 # ===========================

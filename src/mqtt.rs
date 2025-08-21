@@ -1,15 +1,14 @@
-use rumqttc::{AsyncClient, EventLoop, MqttOptions, QoS};
+use rumqttc::{AsyncClient, MqttOptions, QoS};
 use serde_json::json;
 use std::time::Duration;
-use tokio::sync::watch;
 use tokio::task;
 
 pub struct MqttHandler {
     client: AsyncClient,
-    connection_status: watch::Receiver<bool>, // true = connected, false = disconnected
 }
 
 impl MqttHandler {
+    /// Create a new MQTT handler and start the background event loop
     pub async fn new(
         client_id: &str,
         host: &str,
@@ -27,8 +26,7 @@ impl MqttHandler {
 
         let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
 
-        let (status_tx, status_rx) = watch::channel(false);
-
+        // Background task to handle connection and errors
         task::spawn(async move {
             let mut connected = false;
             loop {
@@ -38,24 +36,19 @@ impl MqttHandler {
                             println!("✅ MQTT connected");
                             connected = true;
                         }
-                        let _ = status_tx.send(true);
                     }
                     Err(e) => {
                         if connected {
                             eprintln!("❌ MQTT error: {:?}", e);
                             connected = false;
                         }
-                        let _ = status_tx.send(false);
                         tokio::time::sleep(Duration::from_secs(1)).await;
                     }
                 }
             }
         });
 
-        Self {
-            client,
-            connection_status: status_rx,
-        }
+        Self { client }
     }
 
     pub async fn publish_decoded(
@@ -67,14 +60,9 @@ impl MqttHandler {
     ) -> Result<(), rumqttc::ClientError> {
         let topic = format!("ruuvi/{}/raw5", mac);
         let payload = format!("{{\"temp\":{:.2},\"hum\":{:.1},\"pres\":{:.1}}}", t, h, p);
-
-        // Publish to MQTT
-        let result = self
-            .client
+        self.client
             .publish(topic, QoS::AtLeastOnce, false, payload)
-            .await;
-
-        result
+            .await
     }
 
     pub async fn publish_raw(&self, mac: &str, raw: &[u8]) -> Result<(), rumqttc::ClientError> {
@@ -85,7 +73,6 @@ impl MqttHandler {
             .await
     }
 
-    /// Publish discovery messages for Home Assistant
     pub async fn send_discovery(&self, mac: &str) -> Result<(), rumqttc::ClientError> {
         let base_topic = format!("homeassistant/sensor/ruuvi_{}/", mac.replace(":", "_"));
         let device_id = format!("ruuvi_{}", mac.replace(":", "_"));

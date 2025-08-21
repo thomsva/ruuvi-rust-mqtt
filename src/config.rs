@@ -18,9 +18,11 @@ pub struct MqttConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct SensorConfig {
-    pub whitelist: Option<HashSet<String>>,
-    pub require_whitelist: bool,
-    pub debug_print_measurements: bool,
+    pub blacklist: HashSet<String>,
+    pub use_blacklist: bool,
+    pub whitelist: HashSet<String>,
+    pub use_whitelist: bool,
+    pub debug_print: bool,
 }
 
 #[derive(Debug, Deserialize)]

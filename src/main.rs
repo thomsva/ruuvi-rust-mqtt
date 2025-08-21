@@ -3,7 +3,7 @@ use futures_util::stream::StreamExt;
 
 use std::collections::HashSet;
 
-use tokio::time::{Duration, timeout};
+use tokio::time::Duration;
 
 mod decode_ruuvi; // declares the module
 use decode_ruuvi::decode_ruuvi_raw5; // imports the function
@@ -14,10 +14,13 @@ use config::load_config;
 mod mqtt;
 use mqtt::MqttHandler;
 
+mod startup_info;
+use startup_info::print_startup_info;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config()?;
-    println!("{:#?}", config);
+    // println!("{:#?}", config);
 
     // Setup MQTT
     let mqtt = MqttHandler::new(
@@ -32,10 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
     adapter.set_powered(true).await?;
-    println!("Adapter powered on: {:?}", adapter.is_powered().await?);
+
     let mut known_sensors: HashSet<String> = HashSet::new();
 
-    println!("Starting discovery...");
+    print_startup_info(&config, &adapter).await;
 
     loop {
         let mut events = adapter.discover_devices().await?;
@@ -45,6 +48,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mac = addr.to_string();
             if !mac.starts_with("F1:CC:CA") {
                 continue;
+            }
+
+            // Determine if sensor is allowed by blacklist and whitelist rules
+            let blocked_by_whitelist =
+                config.sensors.use_whitelist && !config.sensors.whitelist.contains(&mac);
+            let blocked_by_blacklist =
+                config.sensors.use_blacklist && config.sensors.blacklist.contains(&mac);
+            let allowed = !blocked_by_whitelist && !blocked_by_blacklist;
+
+            if !allowed && config.sensors.debug_print {
+                if blocked_by_whitelist {
+                    println!("{} → blocked by whitelist", mac);
+                } else if blocked_by_blacklist {
+                    println!("{} → blocked by blacklist", mac);
+                }
+            }
+
+            if !allowed {
+                continue; // Skip further processing
             }
 
             // Check if new sensor
@@ -82,7 +104,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             match decode_ruuvi_raw5(&data) {
                 Some((t, h, p)) => {
                     // Always print if debug_print_measurements is enabled
-                    if config.sensors.debug_print_measurements {
+                    if config.sensors.debug_print {
                         println!("{} → {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
                     }
 
@@ -94,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 None => {
-                    if config.sensors.debug_print_measurements {
+                    if config.sensors.debug_print {
                         eprintln!("⚠️ Failed to decode Ruuvi data from {}", mac);
                     }
                 }
