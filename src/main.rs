@@ -20,7 +20,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:#?}", config);
 
     // Setup MQTT
-    let mqtt = MqttHandler::new("ruuvi-client", "localhost", 1883).await;
+    let mqtt = MqttHandler::new(
+        "ruuvi-client",
+        &config.mqtt.host,
+        config.mqtt.port,
+        config.mqtt.username.as_deref(),
+        config.mqtt.password.as_deref(),
+    )
+    .await;
 
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
@@ -33,48 +40,68 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let mut events = adapter.discover_devices().await?;
 
-        // Discovery every 5 seconds
-        let _ = timeout(Duration::from_secs(5), async {
-            while let Some(AdapterEvent::DeviceAdded(addr)) = events.next().await {
-                // Check if Ruuvi sensor
-                let mac = addr.to_string();
-                if !mac.starts_with("F1:CC:CA") {
-                    continue;
-                }
+        while let Some(AdapterEvent::DeviceAdded(addr)) = events.next().await {
+            // Check if Ruuvi sensor
+            let mac = addr.to_string();
+            if !mac.starts_with("F1:CC:CA") {
+                continue;
+            }
 
-                // Check if new sensor
-                if !known_sensors.contains(&mac) {
-                    println!("New Ruuvi sensor detected and saved: {}", mac);
-                    known_sensors.insert(mac.clone());
-                }
-
-                // Device object based on addr
-                let device = match adapter.device(addr) {
-                    Ok(d) => d,
-                    Err(_) => continue,
-                };
-
-                // Extract data
-                let manuf = match device.manufacturer_data().await {
-                    Ok(Some(m)) => m,
-                    _ => continue,
-                };
-
-                // Match with Ruuvi manufacturer id present in Ruuvi RAVv5 format data
-                let data = match manuf.get(&1177) {
-                    Some(d) => d,
-                    None => continue,
-                };
-
-                // Decode data and publish if successful
-                if let Some((t, h, p)) = decode_ruuvi_raw5(data) {
-                    //println!("---------{}  →  {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
-
-                    // call function to send data to mqtt
-                    let _ = mqtt.publish_sensor(&mac, t, h, p).await;
+            // Check if new sensor
+            if !known_sensors.contains(&mac) {
+                println!("New Ruuvi sensor detected and saved: {}", mac);
+                known_sensors.insert(mac.clone());
+                if config.publish.discovery {
+                    mqtt.send_discovery(&mac).await.ok();
                 }
             }
-        })
-        .await;
+
+            // Device object based on addr
+            let device = match adapter.device(addr) {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+
+            // Extract manufacturer data
+            let manuf = match device.manufacturer_data().await {
+                Ok(Some(m)) => m,
+                _ => continue,
+            };
+
+            let data = match manuf.get(&1177) {
+                Some(d) => d,
+                None => continue,
+            };
+
+            if config.publish.raw_data {
+                if let Err(e) = mqtt.publish_raw(&mac, &data).await {
+                    eprintln!("❌ Failed to publish raw data for {}: {}", mac, e);
+                }
+            }
+
+            match decode_ruuvi_raw5(&data) {
+                Some((t, h, p)) => {
+                    // Always print if debug_print_measurements is enabled
+                    if config.sensors.debug_print_measurements {
+                        println!("{} → {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
+                    }
+
+                    // Publish if enabled
+                    if config.publish.decoded_data {
+                        if let Err(e) = mqtt.publish_decoded(&mac, t, h, p).await {
+                            eprintln!("❌ Failed to publish decoded data for {}: {}", mac, e);
+                        }
+                    }
+                }
+                None => {
+                    if config.sensors.debug_print_measurements {
+                        eprintln!("⚠️ Failed to decode Ruuvi data from {}", mac);
+                    }
+                }
+            }
+        }
+
+        // Wait 5 seconds before next discovery cycle
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }

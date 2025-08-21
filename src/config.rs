@@ -5,24 +5,34 @@ use std::{collections::HashSet, fs, path::Path};
 pub struct Config {
     pub mqtt: MqttConfig,
     pub sensors: SensorConfig,
+    pub publish: PublishConfig,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct MqttConfig {
-    pub broker: String,
+    pub host: String,
+    pub port: u16,
     pub username: Option<String>,
     pub password: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SensorConfig {
-    pub enable_discovery: bool,
-    pub decode_data: bool,
-    pub whitelist: Option<HashSet<String>>, // changed from Vec<String>
+    pub whitelist: Option<HashSet<String>>,
+    pub require_whitelist: bool,
+    pub debug_print_measurements: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PublishConfig {
+    pub discovery: bool,
+    pub decoded_data: bool,
+    pub raw_data: bool,
 }
 
 pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
-    let content = fs::read_to_string("config.toml")?;
+    let path = Path::new("config.toml");
+    let content = fs::read_to_string(path)?;
     let config: Config = toml::from_str(&content)?;
     Ok(config)
 }
