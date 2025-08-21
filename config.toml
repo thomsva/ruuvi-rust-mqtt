@@ -1,0 +1,9 @@
+[mqtt]
+broker = "mqtt://localhost:1883"
+username = ""
+password = ""
+
+[sensors]
+enable_discovery = true
+decode_data = true
+# whitelist = ["F1:CC:CA:55:39:4A"]  # optional

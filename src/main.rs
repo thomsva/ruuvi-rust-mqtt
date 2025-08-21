@@ -1,53 +1,71 @@
-use bluer;
-use tokio_stream::StreamExt; // brings .next() into scope
+use bluer::AdapterEvent;
+use futures_util::stream::StreamExt;
+
+use std::collections::HashSet;
+
+use tokio::time::{Duration, timeout};
+
+mod decode_ruuvi; // declares the module
+use decode_ruuvi::decode_ruuvi_raw5; // imports the function
+
+mod config;
+use config::load_config;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a session (connects to bluez)
+    let config = load_config()?;
+    println!("{:#?}", config);
+
     let session = bluer::Session::new().await?;
+    let adapter = session.default_adapter().await?;
+    adapter.set_powered(true).await?;
+    println!("Adapter powered on: {:?}", adapter.is_powered().await?);
+    let mut known_sensors: HashSet<String> = HashSet::new();
 
-    // Use a specific adapter ("hci0" is usually the first one)
-    let adapter = session.adapter("hci0")?;
+    println!("Starting discovery...");
 
-    println!("Adapter name: {}", adapter.name());
-    println!("Address:      {}", adapter.address().await?);
-    println!("Powered:      {}", adapter.is_powered().await?);
-    println!("Discoverable: {}", adapter.is_discoverable().await?);
+    loop {
+        let mut events = adapter.discover_devices().await?;
 
-    println!("Scanning for Ruuvi devices...");
+        // Discovery every 5 seconds
+        let _ = timeout(Duration::from_secs(5), async {
+            while let Some(AdapterEvent::DeviceAdded(addr)) = events.next().await {
+                // Check if Ruuvi sensor
+                let mac = addr.to_string();
+                if !mac.starts_with("F1:CC:CA") {
+                    continue;
+                }
 
-    println!("Scan finished.");
-    let mut events = adapter.discover_devices().await?;
+                // Check if new sensor
+                if !known_sensors.contains(&mac) {
+                    println!("New Ruuvi sensor detected and saved: {}", mac);
+                    known_sensors.insert(mac.clone());
+                }
 
-    // Loop over events for ~5 seconds
-    let stop_at = std::time::Instant::now() + std::time::Duration::from_secs(5);
+                // Device object based on addr
+                let device = match adapter.device(addr) {
+                    Ok(d) => d,
+                    Err(_) => continue,
+                };
 
-    while let Some(event) = events.next().await {
-        if std::time::Instant::now() > stop_at {
-            break;
-        }
-        // AdapterEvent is not a Result, don't use ?
-        if let bluer::AdapterEvent::DeviceAdded(addr) = event {
-            // adapter.device() is not async, just unwrap or ? directly
-            let device = adapter.device(addr.clone())?;
+                // Extract data
+                let manuf = match device.manufacturer_data().await {
+                    Ok(Some(m)) => m,
+                    _ => continue,
+                };
 
-            // Filter by Ruuvi MAC prefix
-            if device.address().to_string().starts_with("F1:CC:CA") {
-                let name = device.name().await?.unwrap_or_default();
-                let rssi = device.rssi().await?.unwrap_or(0);
-                let manufacturer_data = device.manufacturer_data().await?.unwrap_or_default();
+                // Match with Ruuvi manufacturer id present in Ruuvi RAVv5 format data
+                let data = match manuf.get(&1177) {
+                    Some(d) => d,
+                    None => continue,
+                };
 
-                println!("Ruuvi Device: {}", device.address());
-                println!("  Name: {}", name);
-                println!("  RSSI: {}", rssi);
-                println!("  Manufacturer data: {:?}", manufacturer_data);
-                println!("----------------------------------");
-            } else {
-                println!("Not ruuvi device: {}", device.address());
+                // Decode data
+                if let Some((t, h, p)) = decode_ruuvi_raw5(data) {
+                    println!("{}  →  {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
+                }
             }
-        }
+        })
+        .await;
     }
-    println!("Scan complete!");
-
-    Ok(())
 }
