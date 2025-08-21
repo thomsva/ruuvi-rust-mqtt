@@ -66,9 +66,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     None => continue,
                 };
 
-                // Decode data
+                // Decode data and publish if successful
                 if let Some((t, h, p)) = decode_ruuvi_raw5(data) {
-                    println!("{}  →  {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
+                    //println!("---------{}  →  {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
 
                     // call function to send data to mqtt
                     let _ = mqtt.publish_sensor(&mac, t, h, p).await;
