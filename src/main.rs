@@ -11,10 +11,16 @@ use decode_ruuvi::decode_ruuvi_raw5; // imports the function
 mod config;
 use config::load_config;
 
+mod mqtt;
+use mqtt::MqttHandler;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config()?;
     println!("{:#?}", config);
+
+    // Setup MQTT
+    let mqtt = MqttHandler::new("ruuvi-client", "localhost", 1883).await;
 
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
@@ -63,6 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Decode data
                 if let Some((t, h, p)) = decode_ruuvi_raw5(data) {
                     println!("{}  →  {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
+
+                    // call function to send data to mqtt
+                    let _ = mqtt.publish_sensor(&mac, t, h, p).await;
                 }
             }
         })
