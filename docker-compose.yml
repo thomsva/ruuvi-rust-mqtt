@@ -1,0 +1,37 @@
+services:
+  ruuvi:
+    build: .
+    container_name: ruuvi
+    depends_on:
+      - mqtt
+    environment:
+      - RUST_LOG=info
+    volumes:
+      - ~/ruuvi/config.toml:/config.toml:ro
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
+    devices:
+      - '/dev/hci0:/dev/hci0'
+    restart: always
+    privileged: true
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: mqtt
+    restart: always
+    ports:
+      - '1883:1883'
+    volumes:
+      - ~/mosquitto/config:/mosquitto/config
+      - ~/mosquitto/data:/mosquitto/data
+      - ~/mosquitto/log:/mosquitto/log
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    restart: always
+    volumes:
+      - ~/homeassistant:/config
+    environment:
+      - TZ=Europe/Helsinki
+    ports:
+      - '8123:8123'

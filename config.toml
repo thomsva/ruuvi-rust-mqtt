@@ -3,7 +3,7 @@
 # ===========================
 [mqtt]
 # The hostname or IP address of your MQTT broker
-host = "localhost"
+host = "mqtt"
 
 # The port on which your MQTT broker listens
 port = 1883

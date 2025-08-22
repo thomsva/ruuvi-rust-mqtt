@@ -1,1 +1,5 @@
+# Local volumes
+homeassistant/
+mosquitto/
+# Rust build
 /target
