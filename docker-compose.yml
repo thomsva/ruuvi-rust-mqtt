@@ -1,6 +1,6 @@
 services:
   ruuvi:
-    build: .
+    image: thomsva/ruuvi-rust-mqtt:latest
     container_name: ruuvi
     depends_on:
       - mqtt
