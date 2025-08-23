@@ -30,6 +30,4 @@ WORKDIR /app
 COPY --from=builder /usr/src/ruuvi-rust-mqtt/target/release/ruuvi-rust-mqtt .
 RUN chmod +x /app/ruuvi-rust-mqtt
 
-COPY --from=builder /usr/src/ruuvi-rust-mqtt/config.toml .
-
 ENTRYPOINT ["./ruuvi-rust-mqtt"]
