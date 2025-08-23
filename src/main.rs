@@ -3,7 +3,7 @@ use futures_util::stream::StreamExt;
 
 use std::collections::HashSet;
 
-use tokio::time::Duration;
+use tokio::time::{self, Duration};
 
 mod decode_ruuvi; // declares the module
 use decode_ruuvi::decode_ruuvi_raw5; // imports the function
@@ -43,7 +43,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let mut events = adapter.discover_devices().await?;
 
-        while let Some(AdapterEvent::DeviceAdded(addr)) = events.next().await {
+        while let Ok(Some(AdapterEvent::DeviceAdded(addr))) =
+            time::timeout(Duration::from_secs(3), events.next()).await
+        {
             // Check if Ruuvi sensor
             let mac = addr.to_string();
             if !mac.starts_with("F1:CC:CA") {
@@ -124,6 +126,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Wait 5 seconds before next discovery cycle
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(2)).await;
     }
 }
