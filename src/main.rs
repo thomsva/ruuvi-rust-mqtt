@@ -46,11 +46,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while let Ok(Some(AdapterEvent::DeviceAdded(addr))) =
             time::timeout(Duration::from_secs(3), events.next()).await
         {
-            // Check if Ruuvi sensor
             let mac = addr.to_string();
-            if !mac.starts_with("F1:CC:CA") {
-                continue;
-            }
+
+            // Device object based on addr
+            let device = match adapter.device(addr) {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+
+            // Extract manufacturer data
+            let manuf = match device.manufacturer_data().await {
+                Ok(Some(m)) => m,
+                _ => continue,
+            };
+
+            let data = match manuf.get(&1177) {
+                Some(d) => d,
+                None => continue,
+            };
 
             // Determine if sensor is allowed by blacklist and whitelist rules
             let blocked_by_whitelist =
@@ -79,23 +92,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     mqtt.send_discovery(&mac).await.ok();
                 }
             }
-
-            // Device object based on addr
-            let device = match adapter.device(addr) {
-                Ok(d) => d,
-                Err(_) => continue,
-            };
-
-            // Extract manufacturer data
-            let manuf = match device.manufacturer_data().await {
-                Ok(Some(m)) => m,
-                _ => continue,
-            };
-
-            let data = match manuf.get(&1177) {
-                Some(d) => d,
-                None => continue,
-            };
 
             if config.publish.raw_data {
                 if let Err(e) = mqtt.publish_raw(&mac, &data).await {
