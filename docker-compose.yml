@@ -9,8 +9,6 @@ services:
     volumes:
       - ~/ruuvi/config.toml:/app/config.toml:ro
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket
-    devices:
-      - '/dev/hci0:/dev/hci0'
     restart: always
     privileged: true
 
