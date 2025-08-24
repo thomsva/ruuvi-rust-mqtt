@@ -1,5 +1,59 @@
 use crate::config::Config;
 use bluer::Adapter;
+use std::collections::HashSet;
+
+/// Essential BLE UUIDs for sensors
+const REQUIRED_UUIDS: &[(&str, &str)] = &[
+    ("1800", "Generic Access (required)"),
+    ("1801", "Generic Attribute / GATT (required)"),
+    ("180A", "Device Information (optional)"),
+    ("180F", "Battery Service (optional)"),
+    ("181A", "Environmental Sensing (optional)"),
+];
+
+/// Checks if required UUIDs are supported and prints a compact summary
+async fn print_adapter_ble_services(adapter: &Adapter) {
+    match adapter.uuids().await {
+        Ok(Some(uuids)) => {
+            // Extract 16-bit UUID prefixes for easy matching
+            let uuid_shorts: HashSet<String> = uuids
+                .iter()
+                .filter_map(|u| {
+                    let s = u.to_string();
+                    if s.len() >= 8 {
+                        Some(s[4..8].to_uppercase())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            println!("  BLE Services:");
+            let mut all_required_present = true;
+            for (uuid, desc) in REQUIRED_UUIDS {
+                let supported = uuid_shorts.contains(&uuid.to_string());
+                if desc.contains("(required)") && !supported {
+                    all_required_present = false;
+                }
+                println!(
+                    "    {:<25} {}",
+                    desc,
+                    if supported { "supported" } else { "missing" }
+                );
+            }
+
+            if all_required_present {
+                println!("  All required BLE services are supported ✅");
+            } else {
+                println!(
+                    "  ⚠️ Some required BLE services are missing. BLE devices may not be reachable."
+                );
+            }
+        }
+        Ok(None) => println!("  BLE Services: None reported"),
+        Err(e) => println!("  BLE Services: <error: {}>", e),
+    }
+}
 
 pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
     // Print a clean header with optional version
@@ -115,10 +169,8 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         adapter.pairable_timeout().await.unwrap_or_default()
     );
 
-    // Supported UUIDs (async)
-    match adapter.uuids().await {
-        Ok(uuids) => println!("  Supported UUIDs:      {:?}", uuids),
-        Err(e) => println!("  Supported UUIDs:      <error: {}>", e),
-    }
+    // Print compact BLE service info
+    print_adapter_ble_services(adapter).await;
+
     println!("----------------------\n");
 }
