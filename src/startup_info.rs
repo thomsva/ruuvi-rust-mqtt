@@ -31,7 +31,7 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         if !config.sensors.whitelist.is_empty() {
             format!(" ({})", config.sensors.whitelist.len())
         } else {
-            "".to_string()
+            String::new()
         }
     );
     println!(
@@ -44,7 +44,7 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         if !config.sensors.blacklist.is_empty() {
             format!(" ({})", config.sensors.blacklist.len())
         } else {
-            "".to_string()
+            String::new()
         }
     );
 
