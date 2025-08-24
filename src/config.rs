@@ -1,3 +1,4 @@
+use bluer::Address;
 use serde::Deserialize;
 use std::{collections::HashSet, fs, path::Path};
 
@@ -18,9 +19,9 @@ pub struct MqttConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct SensorConfig {
-    pub blacklist: HashSet<String>,
+    pub blacklist: HashSet<Address>,
     pub use_blacklist: bool,
-    pub whitelist: HashSet<String>,
+    pub whitelist: HashSet<Address>,
     pub use_whitelist: bool,
     pub debug_print: bool,
 }

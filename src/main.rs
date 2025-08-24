@@ -1,4 +1,4 @@
-use bluer::AdapterEvent;
+use bluer::{AdapterEvent, Address};
 use futures_util::stream::StreamExt;
 
 use std::collections::HashSet;
@@ -38,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await;
 
-    let mut known_sensors: HashSet<String> = HashSet::new();
+    let mut known_sensors: HashSet<Address> = HashSet::new();
 
     loop {
         let mut events = adapter.discover_devices().await?;
@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         while let Ok(Some(AdapterEvent::DeviceAdded(addr))) =
             time::timeout(Duration::from_secs(3), events.next()).await
         {
-            let mac = addr.to_string();
+            // let mac = addr.to_string();
 
             // Device object based on addr
             let device = match adapter.device(addr) {
@@ -67,16 +67,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Determine if sensor is allowed by blacklist and whitelist rules
             let blocked_by_whitelist =
-                config.sensors.use_whitelist && !config.sensors.whitelist.contains(&mac);
+                config.sensors.use_whitelist && !config.sensors.whitelist.contains(&addr);
             let blocked_by_blacklist =
-                config.sensors.use_blacklist && config.sensors.blacklist.contains(&mac);
+                config.sensors.use_blacklist && config.sensors.blacklist.contains(&addr);
             let allowed = !blocked_by_whitelist && !blocked_by_blacklist;
 
             if !allowed && config.sensors.debug_print {
                 if blocked_by_whitelist {
-                    println!("{} → blocked by whitelist", mac);
+                    println!("{} → blocked by whitelist", addr);
                 } else if blocked_by_blacklist {
-                    println!("{} → blocked by blacklist", mac);
+                    println!("{} → blocked by blacklist", addr);
                 }
             }
 
@@ -85,17 +85,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             // Check if new sensor
-            if !known_sensors.contains(&mac) {
-                println!("New Ruuvi sensor detected and saved: {}", mac);
-                known_sensors.insert(mac.clone());
+            if !known_sensors.contains(&addr) {
+                println!("New Ruuvi sensor detected and saved: {}", addr);
+                known_sensors.insert(addr.clone());
                 if config.publish.discovery {
-                    mqtt.send_discovery(&mac).await.ok();
+                    mqtt.send_discovery(&addr.to_string()).await.ok();
                 }
             }
 
             if config.publish.raw_data {
-                if let Err(e) = mqtt.publish_raw(&mac, &data).await {
-                    eprintln!("❌ Failed to publish raw data for {}: {}", mac, e);
+                if let Err(e) = mqtt.publish_raw(&addr.to_string(), &data).await {
+                    eprintln!("❌ Failed to publish raw data for {}: {}", addr, e);
                 }
             }
 
@@ -103,19 +103,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some((t, h, p)) => {
                     // Always print if debug_print_measurements is enabled
                     if config.sensors.debug_print {
-                        println!("{} → {:.2}°C  {:.1}%  {:.1}hPa", mac, t, h, p);
+                        println!("{} → {:.2}°C  {:.1}%  {:.1}hPa", addr, t, h, p);
                     }
 
                     // Publish if enabled
                     if config.publish.decoded_data {
-                        if let Err(e) = mqtt.publish_decoded(&mac, t, h, p).await {
-                            eprintln!("❌ Failed to publish decoded data for {}: {}", mac, e);
+                        if let Err(e) = mqtt.publish_decoded(&addr.to_string(), t, h, p).await {
+                            eprintln!("❌ Failed to publish decoded data for {}: {}", addr, e);
                         }
                     }
                 }
                 None => {
                     if config.sensors.debug_print {
-                        eprintln!("⚠️ Failed to decode Ruuvi data from {}", mac);
+                        eprintln!("⚠️ Failed to decode Ruuvi data from {}", addr);
                     }
                 }
             }
