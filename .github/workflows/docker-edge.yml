@@ -1,0 +1,30 @@
+name: Publish docker edge image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker:
+    name: Build and push image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build image
+        run: docker build -t thomsva/ruuvi-rust-mqtt:edgep .
+
+      - name: Push image
+        run: docker push thomsva/ruuvi-rust-mqtt:edge
