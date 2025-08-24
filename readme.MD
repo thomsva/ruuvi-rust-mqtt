@@ -1,4 +1,4 @@
-[![Build and publish Docker Image](https://github.com/thomsva/ruuvi-rust-mqtt/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/thomsva/ruuvi-rust-mqtt/actions/workflows/docker-publish.yml)
+[![Publish Docker release image](https://github.com/thomsva/ruuvi-rust-mqtt/actions/workflows/docker-release.yml/badge.svg)](https://github.com/thomsva/ruuvi-rust-mqtt/actions/workflows/docker-release.yml)
 
 # ruuvi-rust-mqtt
 Simple program to gather data from RuuviTag sensors and publish to mqtt broker. Easy integration with Home-Assistant.
