@@ -100,10 +100,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             match decode_ruuvi_raw5(&data) {
-                Some((t, h, p)) => {
+                Some((t, h, p, b)) => {
                     // Always print if debug_print_measurements is enabled
                     if config.sensors.debug_print {
-                        println!("{} → {:.2}°C  {:.1}%  {:.1}hPa", addr, t, h, p);
+                        println!("{} → {:.2}°C  {:.1}%  {:.1}hPa  {:.3}", addr, t, h, p, b);
                     }
 
                     // Publish if enabled
