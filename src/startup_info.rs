@@ -1,5 +1,3 @@
-// src/print_startup_info.rs
-
 use crate::config::Config;
 use bluer::Adapter;
 
@@ -84,5 +82,43 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         }
     );
 
+    // Bluetooth session & adapter debug info
+    println!("----------------------");
+    println!("Bluetooth Adapter Info:");
+    println!("  Name:           {}", adapter.name());
+
+    // Address (async)
+    match adapter.address().await {
+        Ok(addr) => println!("  Address:        {}", addr),
+        Err(e) => println!("  Address:        <error: {}>", e),
+    }
+
+    // Powered, Discoverable, Pairable
+    let powered = adapter.is_powered().await.unwrap_or(false);
+    println!("  Powered:        {}", powered);
+    println!(
+        "  Discoverable:   {}",
+        adapter.is_discoverable().await.unwrap_or(false)
+    );
+    println!(
+        "  Pairable:       {}",
+        adapter.is_pairable().await.unwrap_or(false)
+    );
+
+    // Discoverable & Pairable timeouts
+    println!(
+        "  Discoverable timeout: {:?}",
+        adapter.discoverable_timeout().await.unwrap_or_default()
+    );
+    println!(
+        "  Pairable timeout:     {:?}",
+        adapter.pairable_timeout().await.unwrap_or_default()
+    );
+
+    // Supported UUIDs (async)
+    match adapter.uuids().await {
+        Ok(uuids) => println!("  Supported UUIDs:      {:?}", uuids),
+        Err(e) => println!("  Supported UUIDs:      <error: {}>", e),
+    }
     println!("----------------------\n");
 }
