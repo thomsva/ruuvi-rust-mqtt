@@ -22,6 +22,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config()?;
     // println!("{:#?}", config);
 
+    let session = bluer::Session::new().await?;
+    let adapter = session.default_adapter().await?;
+    adapter.set_powered(true).await?;
+
+    print_startup_info(&config, &adapter).await;
+
     // Setup MQTT
     let mqtt = MqttHandler::new(
         "ruuvi-client",
@@ -32,13 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await;
 
-    let session = bluer::Session::new().await?;
-    let adapter = session.default_adapter().await?;
-    adapter.set_powered(true).await?;
-
     let mut known_sensors: HashSet<String> = HashSet::new();
-
-    print_startup_info(&config, &adapter).await;
 
     loop {
         let mut events = adapter.discover_devices().await?;
