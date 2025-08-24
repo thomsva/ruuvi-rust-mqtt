@@ -1,3 +1,4 @@
+use bluer::Address;
 use rumqttc::{AsyncClient, MqttOptions, QoS};
 use serde_json::json;
 use std::time::Duration;
@@ -53,7 +54,7 @@ impl MqttHandler {
 
     pub async fn publish_decoded(
         &self,
-        mac: &str,
+        mac: &Address,
         t: f32,
         h: f32,
         p: f32,

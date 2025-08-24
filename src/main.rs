@@ -108,7 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Publish if enabled
                     if config.publish.decoded_data {
-                        if let Err(e) = mqtt.publish_decoded(&addr.to_string(), t, h, p).await {
+                        if let Err(e) = mqtt.publish_decoded(&addr, t, h, p).await {
                             eprintln!("❌ Failed to publish decoded data for {}: {}", addr, e);
                         }
                     }
