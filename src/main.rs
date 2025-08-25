@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut events = adapter.discover_devices().await?;
 
         while let Ok(Some(AdapterEvent::DeviceAdded(addr))) =
-            time::timeout(Duration::from_secs(3), events.next()).await
+            time::timeout(Duration::from_secs(2), events.next()).await
         {
             // let mac = addr.to_string();
 
@@ -121,7 +121,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Wait 5 seconds before next discovery cycle
-        tokio::time::sleep(Duration::from_secs(2)).await;
+        drop(events);
+
+        // Wait 10 seconds before next discovery cycle
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
