@@ -38,9 +38,9 @@ impl MqttHandler {
                             connected = true;
                         }
                     }
-                    Err(e) => {
+                    Err(_) => {
                         if connected {
-                            eprintln!("❌ MQTT error: {:?}", e);
+                            eprintln!("❌ MQTT disconnected");
                             connected = false;
                         }
                         tokio::time::sleep(Duration::from_secs(1)).await;
