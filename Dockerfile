@@ -7,13 +7,10 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-
 WORKDIR /usr/src/ruuvi-rust-mqtt
 
 COPY Cargo.toml Cargo.lock ./
-
 COPY src ./src
-COPY config.toml ./
 
 RUN cargo build --release
 
