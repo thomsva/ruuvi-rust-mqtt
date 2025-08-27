@@ -1,5 +1,6 @@
 use bluer::{Adapter, AdapterEvent, Address, DiscoveryFilter, DiscoveryTransport};
 use futures_util::stream::StreamExt;
+use tokio::time::{Duration, sleep};
 
 use std::collections::{HashMap, HashSet};
 
@@ -47,23 +48,30 @@ async fn extract_ruuvi_payload(
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = load_config()?;
-    // println!("{:#?}", config);
+
     let session = bluer::Session::new().await?;
 
-    //let adapter = session.default_adapter().await?;
-    let adapter = match session.default_adapter().await {
-        Ok(a) => a,
-        Err(e) => {
-            eprintln!("❌ No default Bluetooth adapter found: {}", e);
-            std::process::exit(1);
+    let adapter = loop {
+        match session.default_adapter().await {
+            Ok(a) => break a,
+            Err(e) => {
+                eprintln!(
+                    "❌ No default Bluetooth adapter found: {}. Retrying in 10s…",
+                    e
+                );
+                sleep(Duration::from_secs(10)).await;
+            }
         }
     };
+
     adapter.set_powered(true).await?;
+
     let filter = DiscoveryFilter {
         transport: DiscoveryTransport::Le,
         discoverable: false,
         ..Default::default()
     };
+
     adapter.set_discovery_filter(filter).await?;
 
     print_startup_info(&config, &adapter).await;
