@@ -11,6 +11,8 @@ const REQUIRED_UUIDS: &[(&str, &str)] = &[
     ("181A", "Environmental Sensing (optional)"),
 ];
 
+const SEPARATOR_LENGTH: usize = 50;
+
 /// Checks if required UUIDs are supported and prints a compact summary
 async fn print_adapter_ble_services(adapter: &Adapter) {
     match adapter.uuids().await {
@@ -55,11 +57,13 @@ async fn print_adapter_ble_services(adapter: &Adapter) {
     }
 }
 
-pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
-    // Print a clean header with optional version
-    println!("Ruuvi Rust MQTT v0.1.0");
-    println!("----------------------");
+pub fn print_version_info(version: &str) {
+    println!("{}", "=".repeat(SEPARATOR_LENGTH));
+    println!("Ruuvi Rust MQTT v{}", version);
+    println!("{}", "=".repeat(SEPARATOR_LENGTH));
+}
 
+pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
     // MQTT info
     let mqtt_username = config.mqtt.username.as_deref().unwrap_or("none");
     println!(
@@ -137,7 +141,7 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
     );
 
     // Bluetooth session & adapter debug info
-    println!("----------------------");
+    println!("{}", "-".repeat(SEPARATOR_LENGTH));
     println!("Bluetooth Adapter Info:");
     println!("  Name:           {}", adapter.name());
 
@@ -172,5 +176,5 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
     // Print compact BLE service info
     print_adapter_ble_services(adapter).await;
 
-    println!("----------------------\n");
+    println!("{}", "-".repeat(SEPARATOR_LENGTH));
 }

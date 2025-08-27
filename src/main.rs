@@ -15,6 +15,8 @@ use mqtt::MqttHandler;
 
 mod startup_info;
 use startup_info::print_startup_info;
+
+use crate::startup_info::print_version_info;
 const RUUVI_COMPANY_ID: u16 = 0x0499;
 
 async fn extract_ruuvi_payload(
@@ -47,6 +49,8 @@ async fn extract_ruuvi_payload(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    print_version_info(env!("CARGO_PKG_VERSION"));
+
     let config = load_config()?;
 
     let session = bluer::Session::new().await?;
