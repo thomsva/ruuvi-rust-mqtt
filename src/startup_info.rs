@@ -65,10 +65,19 @@ pub fn print_version_info(version: &str) {
 
 pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
     // MQTT info
-    let mqtt_username = config.mqtt.username.as_deref().unwrap_or("none");
+    let mqtt_username = match config.mqtt.username.as_deref() {
+        Some("") | None => "<none>",
+        Some(name) => name,
+    };
+
+    let mqtt_password = match config.mqtt.password.as_deref() {
+        Some("") | None => "<none>",
+        Some(_) => "****", // hide actual password
+    };
+
     println!(
-        "MQTT: {}:{} (username: {})",
-        config.mqtt.host, config.mqtt.port, mqtt_username
+        "MQTT: {}:{} (username: {}, password: {})",
+        config.mqtt.host, config.mqtt.port, mqtt_username, mqtt_password
     );
 
     // Adapter info
