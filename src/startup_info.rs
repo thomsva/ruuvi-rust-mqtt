@@ -63,7 +63,7 @@ pub fn print_version_info(version: &str) {
     println!("{}", "=".repeat(SEPARATOR_LENGTH));
 }
 
-pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
+pub async fn print_startup_info(config: &Config) {
     // MQTT info
     let mqtt_username = match config.mqtt.username.as_deref() {
         Some("") | None => "<none>",
@@ -79,11 +79,6 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         "MQTT: {}:{} (username: {}, password: {})",
         config.mqtt.host, config.mqtt.port, mqtt_username, mqtt_password
     );
-
-    // Adapter info
-    let adapter_name = adapter.name();
-    let powered = adapter.is_powered().await.unwrap_or(false);
-    println!("Adapter: {} powered {}", adapter_name, powered);
 
     // Whitelist / blacklist
     println!(
@@ -149,6 +144,10 @@ pub async fn print_startup_info(config: &Config, adapter: &Adapter) {
         }
     );
 
+    println!("{}", "-".repeat(SEPARATOR_LENGTH));
+}
+
+pub async fn print_adapter_info(adapter: &Adapter) {
     // Bluetooth session & adapter debug info
     println!("{}", "-".repeat(SEPARATOR_LENGTH));
     println!("Bluetooth Adapter Info:");
