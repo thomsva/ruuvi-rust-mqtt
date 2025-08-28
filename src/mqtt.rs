@@ -1,4 +1,4 @@
-use bluer::Address;
+use bluer::{Adapter, Address};
 use rumqttc::{AsyncClient, MqttOptions, QoS};
 use serde_json::json;
 use std::time::Duration;
@@ -66,7 +66,7 @@ impl MqttHandler {
             .await
     }
 
-    pub async fn publish_raw(&self, mac: &str, raw: &[u8]) -> Result<(), rumqttc::ClientError> {
+    pub async fn publish_raw(&self, mac: &Address, raw: &[u8]) -> Result<(), rumqttc::ClientError> {
         let topic = format!("ruuvi/{}/raw", mac);
         let payload = hex::encode(raw);
         self.client

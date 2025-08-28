@@ -126,7 +126,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Publish raw data
                     if config.publish.raw_data {
-                        if let Err(e) = mqtt.publish_raw(&mac.to_string(), &payload).await {
+                        if let Err(e) = mqtt.publish_raw(&mac, &payload).await {
                             eprintln!("❌ Failed to publish raw data for {}: {}", mac, e);
                         }
                     }
