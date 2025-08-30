@@ -26,16 +26,16 @@ async fn extract_ruuvi_payload(
 ) -> Option<Vec<u8>> {
     let device = adapter.device(*mac).ok()?; // return None if failed
     let blocked_by_whitelist =
-        config.sensors.use_whitelist && !config.sensors.whitelist.contains(&mac);
+        config.sensors.use_whitelist && !config.sensors.whitelist.contains(mac);
     let blocked_by_blacklist =
-        config.sensors.use_blacklist && config.sensors.blacklist.contains(&mac);
+        config.sensors.use_blacklist && config.sensors.blacklist.contains(mac);
     let allowed = !blocked_by_whitelist && !blocked_by_blacklist;
 
     if !allowed && config.sensors.debug_print {
         if blocked_by_whitelist {
-            println!("{} → blocked by whitelist", mac);
+            println!("{mac} → blocked by whitelist");
         } else if blocked_by_blacklist {
-            println!("{} → blocked by blacklist", mac);
+            println!("{mac} → blocked by blacklist");
         }
     }
 
@@ -63,8 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.mqtt.port,
         config.mqtt.username.as_deref(),
         config.mqtt.password.as_deref(),
-    )
-    .await;
+    );
 
     loop {
         let adapter = loop {
@@ -74,10 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     break a;
                 }
                 Err(e) => {
-                    eprintln!(
-                        "❌ No default Bluetooth adapter found: {}. Retrying in 10s…",
-                        e
-                    );
+                    eprintln!("❌ No default Bluetooth adapter found: {e}. Retrying in 10s…");
                     sleep(Duration::from_secs(10)).await;
                 }
             }
@@ -113,22 +109,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if previous_payload.get(&mac) == Some(&payload) {
                         continue;
                     }
-                    previous_payload.insert(mac.clone(), payload.clone());
+                    previous_payload.insert(mac, payload.clone());
 
                     // Publish discovery if new sensor
                     if !known_sensors.contains(&mac) {
-                        println!("New Ruuvi sensor detected and saved: {}", mac);
-                        known_sensors.insert(mac.clone());
+                        println!("New Ruuvi sensor detected and saved: {mac}");
+                        known_sensors.insert(mac);
                         if config.publish.discovery {
                             mqtt.send_discovery(&mac.to_string()).await.ok();
                         }
                     }
 
                     // Publish raw data
-                    if config.publish.raw_data {
-                        if let Err(e) = mqtt.publish_raw(&mac, &payload).await {
-                            eprintln!("❌ Failed to publish raw data for {}: {}", mac, e);
-                        }
+                    if config.publish.raw_data
+                        && let Err(e) = mqtt.publish_raw(&mac, &payload).await
+                    {
+                        eprintln!("❌ Failed to publish raw data for {mac}: {e}");
                     }
 
                     // Publish decoded data
@@ -136,22 +132,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Some((t, h, p, b)) => {
                             // Always print if debug_print_measurements is enabled
                             if config.sensors.debug_print {
-                                println!("{} → {:.2}°C  {:.1}%  {:.1}hPa  {:.3}V", mac, t, h, p, b);
+                                println!("{mac} → {t:.2}°C  {h:.1}%  {p:.1}hPa  {b:.3}V");
                             }
 
                             // Publish if enabled
-                            if config.publish.decoded_data {
-                                if let Err(e) = mqtt.publish_decoded(&mac, t, h, p).await {
-                                    eprintln!(
-                                        "❌ Failed to publish decoded data for {}: {}",
-                                        mac, e
-                                    );
-                                }
+                            if config.publish.decoded_data
+                                && let Err(e) = mqtt.publish_decoded(&mac, t, h, p).await
+                            {
+                                eprintln!("❌ Failed to publish decoded data for {mac}: {e}");
                             }
                         }
                         None => {
                             if config.sensors.debug_print {
-                                eprintln!("⚠️ Failed to decode Ruuvi data from {}", mac);
+                                eprintln!("⚠️ Failed to decode Ruuvi data from {mac}");
                             }
                         }
                     }

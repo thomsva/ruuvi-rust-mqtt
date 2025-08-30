@@ -33,7 +33,7 @@ async fn print_adapter_ble_services(adapter: &Adapter) {
             println!("  BLE Services:");
             let mut all_required_present = true;
             for (uuid, desc) in REQUIRED_UUIDS {
-                let supported = uuid_shorts.contains(&uuid.to_string());
+                let supported = uuid_shorts.contains(*uuid);
                 if desc.contains("(required)") && !supported {
                     all_required_present = false;
                 }
@@ -53,13 +53,13 @@ async fn print_adapter_ble_services(adapter: &Adapter) {
             }
         }
         Ok(None) => println!("  BLE Services: None reported"),
-        Err(e) => println!("  BLE Services: <error: {}>", e),
+        Err(e) => println!("  BLE Services: <error: {e}>"),
     }
 }
 
 pub fn print_version_info(version: &str) {
     println!("{}", "=".repeat(SEPARATOR_LENGTH));
-    println!("Ruuvi Rust MQTT v{}", version);
+    println!("Ruuvi Rust MQTT v{version}");
     println!("{}", "=".repeat(SEPARATOR_LENGTH));
 }
 
@@ -88,10 +88,10 @@ pub async fn print_startup_info(config: &Config) {
         } else {
             "disabled"
         },
-        if !config.sensors.whitelist.is_empty() {
-            format!(" ({})", config.sensors.whitelist.len())
-        } else {
+        if config.sensors.whitelist.is_empty() {
             String::new()
+        } else {
+            format!(" ({})", config.sensors.whitelist.len())
         }
     );
     println!(
@@ -101,10 +101,10 @@ pub async fn print_startup_info(config: &Config) {
         } else {
             "disabled"
         },
-        if !config.sensors.blacklist.is_empty() {
-            format!(" ({})", config.sensors.blacklist.len())
-        } else {
+        if config.sensors.blacklist.is_empty() {
             String::new()
+        } else {
+            format!(" ({})", config.sensors.blacklist.len())
         }
     );
 
@@ -155,13 +155,13 @@ pub async fn print_adapter_info(adapter: &Adapter) {
 
     // Address (async)
     match adapter.address().await {
-        Ok(addr) => println!("  Address:        {}", addr),
-        Err(e) => println!("  Address:        <error: {}>", e),
+        Ok(mac) => println!("  Address:        {mac}"),
+        Err(e) => println!("  Address:        <error: {e}>"),
     }
 
     // Powered, Discoverable, Pairable
     let powered = adapter.is_powered().await.unwrap_or(false);
-    println!("  Powered:        {}", powered);
+    println!("  Powered:        {powered}");
     println!(
         "  Discoverable:   {}",
         adapter.is_discoverable().await.unwrap_or(false)

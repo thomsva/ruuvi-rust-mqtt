@@ -10,10 +10,10 @@ pub fn decode_ruuvi_raw5(data: &[u8]) -> Option<(f32, f32, f32, f32)> {
     let power_raw = u16::from_be_bytes([data[13], data[14]]);
     let battery_raw = power_raw >> 5; // 0..2046
 
-    let temperature = temp_raw as f32 / 200.0;
-    let humidity = hum_raw as f32 / 400.0; // already in %, no x100!
-    let pressure = (pres_raw as f32 + 50000.0) / 100.0;
-    let battery = ((1600 as f32) + (battery_raw as f32)) / 1000.0;
+    let temperature = f32::from(temp_raw) / 200.0;
+    let humidity = f32::from(hum_raw) / 400.0; // already in %, no x100!
+    let pressure = (f32::from(pres_raw) + 50000.0) / 100.0;
+    let battery = (1600_f32 + f32::from(battery_raw)) / 1000.0;
 
     Some((temperature, humidity, pressure, battery))
 }

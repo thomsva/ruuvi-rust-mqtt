@@ -1,4 +1,4 @@
-use bluer::{Adapter, Address};
+use bluer::Address;
 use rumqttc::{AsyncClient, MqttOptions, QoS};
 use serde_json::json;
 use std::time::Duration;
@@ -10,7 +10,7 @@ pub struct MqttHandler {
 
 impl MqttHandler {
     /// Create a new MQTT handler and start the background event loop
-    pub async fn new(
+    pub fn new(
         client_id: &str,
         host: &str,
         port: u16,
@@ -31,20 +31,17 @@ impl MqttHandler {
         task::spawn(async move {
             let mut connected = false;
             loop {
-                match eventloop.poll().await {
-                    Ok(_) => {
-                        if !connected {
-                            println!("✅ MQTT connected");
-                            connected = true;
-                        }
+                if eventloop.poll().await.is_ok() {
+                    if !connected {
+                        println!("✅ MQTT connected");
+                        connected = true;
                     }
-                    Err(_) => {
-                        if connected {
-                            eprintln!("❌ MQTT disconnected");
-                            connected = false;
-                        }
-                        tokio::time::sleep(Duration::from_secs(1)).await;
+                } else {
+                    if connected {
+                        eprintln!("❌ MQTT disconnected");
+                        connected = false;
                     }
+                    tokio::time::sleep(Duration::from_secs(1)).await;
                 }
             }
         });
@@ -59,15 +56,15 @@ impl MqttHandler {
         h: f32,
         p: f32,
     ) -> Result<(), rumqttc::ClientError> {
-        let topic = format!("ruuvi/{}/raw5", mac);
-        let payload = format!("{{\"temp\":{:.2},\"hum\":{:.1},\"pres\":{:.1}}}", t, h, p);
+        let topic = format!("ruuvi/{mac}/raw5");
+        let payload = format!("{{\"temp\":{t:.2},\"hum\":{h:.1},\"pres\":{p:.1}}}");
         self.client
             .publish(topic, QoS::AtLeastOnce, false, payload)
             .await
     }
 
     pub async fn publish_raw(&self, mac: &Address, raw: &[u8]) -> Result<(), rumqttc::ClientError> {
-        let topic = format!("ruuvi/{}/raw", mac);
+        let topic = format!("ruuvi/{mac}/raw");
         let payload = hex::encode(raw);
         self.client
             .publish(topic, QoS::AtLeastOnce, false, payload)
@@ -75,9 +72,9 @@ impl MqttHandler {
     }
 
     pub async fn send_discovery(&self, mac: &str) -> Result<(), rumqttc::ClientError> {
-        let base_topic = format!("homeassistant/sensor/ruuvi_{}/", mac.replace(":", "_"));
-        let device_id = format!("ruuvi_{}", mac.replace(":", "_"));
-        let device_name = format!("Ruuvi {}", mac);
+        let base_topic = format!("homeassistant/sensor/ruuvi_{}/", mac.replace(':', "_"));
+        let device_id = format!("ruuvi_{}", mac.replace(':', "_"));
+        let device_name = format!("Ruuvi {mac}");
 
         let sensors = vec![
             ("temperature", "Temperature", "°C", "{{ value_json.temp }}"),
@@ -86,7 +83,7 @@ impl MqttHandler {
         ];
 
         for (object_id, name, unit, value_template) in sensors {
-            let topic = format!("{}{}/config", base_topic, object_id);
+            let topic = format!("{base_topic}{object_id}/config");
             let payload = json!({
                 "name": name,
                 "state_topic": format!("ruuvi/{}/raw5", mac),
