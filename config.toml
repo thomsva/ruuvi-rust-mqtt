@@ -1,52 +1,17 @@
-# ===========================
-# MQTT Configuration
-# ===========================
 [mqtt]
-# The hostname or IP address of your MQTT broker
 host = "mqtt"
-
-# The port on which your MQTT broker listens
 port = 1883
-
-# Optional MQTT username for authentication (leave empty if not required)
 username = ""
-
-# Optional MQTT password for authentication (leave empty if not required)
 password = ""
 
-
-# ===========================
-# Sensor Filtering / Logging
-# ===========================
 [sensors]
-# List of sensor MAC addresses to exclude. 
-# Formatting examples: [] or ["F1:CC:CA:55:44:33:, "F1:CC:CA:55:22:11"]
 blacklist = []
-
-# If true, sensors on the blaclist are always excluded. False bypasses this rule. 
 use_blacklist = false
-
-# List of sensor MAC addresses to include.
-# Formatting examples: [] or ["F1:CC:CA:55:44:33:, "F1:CC:CA:55:22:11"]
 whitelist = []
-
-# If true, only sensors in the whitelist are allowed. If false, all detected sensors are accepted.
 use_whitelist = false
-
-# Print sensor measurements to the console for debugging. 
-# Recommended to disable in long-running deployments.
 debug_print = false
 
-
-# ===========================
-# Publish Options
-# ===========================
 [publish]
-# Enable Home Assistant MQTT discovery for newly detected sensors
 discovery = true
-
-# Publish decoded sensor data (temperature, humidity, pressure)
 decoded_data = true
-
-# Publish raw sensor data (hex format). Usually not needed unless for debugging or analysis
 raw_data = false
